@@ -1,0 +1,63 @@
+---
+  - name: get docker gpg key
+    become: true
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+
+  - name: add docker apt repo
+    become: true
+    apt_repository:
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+      state: present
+
+  - name: install docker via apt
+    become: true
+    apt:
+      name: "docker-ce"
+      update_cache: yes
+
+  - name: install software via pip
+    become: true
+    pip:
+      name: ["docker-compose"]
+      executable: pip
+
+  - name: copy docker config
+    become: true
+    copy:
+      src: docker/daemon.json
+      dest: /etc/docker/daemon.json
+      force: yes
+      owner: root
+      group: root
+      mode: 644
+
+  - name: exec restart
+    become: true
+    systemd:
+      name: docker.service
+      state: restarted
+      enabled: true
+      daemon_reload: yes
+
+  - name: add users to docker group
+    become: true
+    user:
+      name: '{{ item }}'
+      groups: docker
+      append: yes
+    with_items:
+      - ubuntu
+
+  - meta: reset_connection
+
+  - name: create default gw
+    become: true
+    shell: docker network create --opt com.docker.network.bridge.name=docker_gwbridge --opt com.docker.network.bridge.enable_icc=false --opt com.docker.network.bridge.enable_ip_masquerade=true --opt com.docker.network.driver.mtu=1400 docker_gwbridge
+
+  - name: install swarm
+    shell: docker swarm init
+
+  - name: create network
+    shell: docker network create -d overlay --attachable --opt com.docker.network.driver.mtu=1400 showcase

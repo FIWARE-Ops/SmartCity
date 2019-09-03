@@ -1,0 +1,32 @@
+version: "3.3"
+
+services:
+    mongo:
+        command: --nojournal
+        image: mongo:3.4
+        logging:
+            options:
+                max-size: 1m
+        networks:
+            - showcase
+        restart: unless-stopped
+        volumes:
+            - /home/ubuntu/showcase/mongo/:/data/db/
+
+    orion:
+        command: -dbhost mongo -logLevel INFO
+        depends_on:
+            - mongo
+        image: fiware/orion:2.2.0
+        logging:
+            options:
+                max-size: 1m
+        networks:
+            - showcase
+        restart: unless-stopped
+        ports:
+            - '1026:1026'
+
+networks:
+  showcase:
+    external: true

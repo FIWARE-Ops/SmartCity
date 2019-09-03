@@ -1,0 +1,59 @@
+---
+  - name: create parent folder
+    file:
+      path: /home/ubuntu/showcase/
+      state: "{{ item }}"
+      owner: ubuntu
+      group: ubuntu
+    with_items:
+      - absent
+      - directory
+
+  - name: create mongo folder
+    become: true
+    file:
+      path: /home/ubuntu/showcase/mongo
+      state: "{{ item }}"
+      owner: 999
+      group: ubuntu
+    with_items:
+      - absent
+      - directory
+
+  - name: copy docker-compose
+    copy:
+      src: showcase/docker-compose.yml
+      dest: /home/ubuntu/showcase/docker-compose.yml
+
+  - name: pull images
+    shell: docker-compose pull
+    args:
+      chdir: /home/ubuntu/showcase/
+
+  - name: rm stack
+    shell: docker stack rm smartcity
+
+  - name: clean host
+    shell: docker {{ item }} prune -f
+    with_items:
+      - container
+      - volume
+
+  - name: run stack
+    shell: docker stack deploy --compose-file docker-compose.yml smartcity
+    args:
+      chdir: /home/ubuntu/showcase
+
+  - name: check if mongo up
+    shell: docker service logs smartcity_mongo 2>&1 | sed 's/"//g'
+    register: test
+    until: test.stdout.find('waiting for connections on port 27017') != -1
+    delay: 7
+    retries: 7
+
+  - name: check if orion up
+    shell: docker service logs smartcity_orion 2>&1 | sed 's/"//g'
+    register: test
+    until: test.stdout.find('Startup completed') != -1
+    delay: 7
+    retries: 7

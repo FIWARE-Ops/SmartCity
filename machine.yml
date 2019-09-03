@@ -1,0 +1,83 @@
+---
+  - name: prepare locale
+    become: true
+    shell: locale-gen en_US.UTF-8
+
+  - name: set locales
+    become: true
+    lineinfile:
+      dest: /etc/environment
+      regexp: '{{ item }}'
+      line: "{{ item }}"
+      state: present
+    with_items:
+      - LC_ALL="en_US.UTF-8"
+      - LANG="en_US.UTF-8"
+
+  - name: update ubuntu
+    become: true
+    apt:
+      name: "*"
+      state: latest
+      force_apt_get: yes
+
+  - name: install packages ubuntu
+    become: true
+    apt:
+      name: ['apt-transport-https',
+             'ca-certificates',
+             'coreutils',
+             'htop',
+             'iftop',
+             'iotop',
+             'iperf',
+             'iproute2',
+             'iputils-ping',
+             'nmon',
+             'ntpdate',
+             'psmisc',
+             'python-pip',
+             'software-properties-common',
+             'sysstat',
+             'netcat',
+             'tzdata',
+             'vim']
+
+  - name: update pip
+    become: true
+    shell: pip install --upgrade pip
+
+  - name: set timezone
+    become: true
+    timezone:
+      name: UTC
+
+  - name: disable irqbalance service
+    become: true
+    systemd:
+      name:  irqbalance.service
+      state: stopped
+      enabled: false
+      daemon_reload: yes
+
+  - name: enable module
+    become: true
+    modprobe:
+      name: ip_conntrack
+      state: present
+
+  - name: set limits
+    become: true
+    copy:
+      src:  machine/limits.conf
+      dest: /etc/security/limits.conf
+
+  - name: copy sysctl
+    become: true
+    copy:
+      src:  machine/sysctl.conf
+      dest: /etc/sysctl.conf
+
+  - name: apply sysctl
+    become: true
+    shell: sysctl -p

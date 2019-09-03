@@ -1,0 +1,4 @@
+*.idea
+*.retry
+*.log
+.DS_Store

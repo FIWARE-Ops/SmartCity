@@ -1,0 +1,14 @@
+- hosts: server
+  gather_facts: true
+  become: false
+  tasks:
+  - name: machine
+    import_tasks: machine.yml
+    when: prepare is defined
+
+  - name: docker
+    import_tasks: docker.yml
+    when: prepare is defined
+
+  - name: showcase
+    import_tasks: showcase.yml
